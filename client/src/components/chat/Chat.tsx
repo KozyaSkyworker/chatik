@@ -19,7 +19,14 @@ export const Chat = () => {
   }, []);
 
   return (
-    <div className="h-screen bg-blue-300 flex items-center justify-center">
+    <div className="h-screen bg-blue-300 flex items-center justify-center flex-col">
+      <a
+        className="bg-teal-300 rounded mb-1 px-2"
+        title="return to form"
+        href="/"
+      >
+        go back
+      </a>
       {name && room && <ChatWidget socket={socket} name={name} room={room} />}
     </div>
   );

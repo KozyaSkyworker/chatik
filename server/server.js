@@ -12,6 +12,25 @@ const io = new Server(server, {
   },
 });
 
+function getUsersInRoom(room) {
+  const users = [];
+  const socketsInRoom = io.sockets.adapter.rooms.get(room);
+
+  if (socketsInRoom) {
+    for (const socketId of socketsInRoom) {
+      const socket = io.sockets.sockets.get(socketId);
+      if (socket) {
+        users.push({
+          name: socket.name,
+          id: socketId,
+        });
+      }
+    }
+  }
+
+  return users;
+}
+
 app.use(cors({ origin: "http://localhost:5173" }));
 
 io.on("connection", (socket) => {
@@ -19,7 +38,20 @@ io.on("connection", (socket) => {
 
   socket.on("join", ({ name, room }) => {
     console.log("new join", name, room);
+
+    socket.name = name;
+    socket.room = room;
+
     socket.join(room);
+
+    io.to(room).emit("userStatus", {
+      message: "joined",
+      name,
+      room,
+    });
+
+    const usersInRoom = getUsersInRoom(room);
+    io.to(room).emit("updateUserList", usersInRoom);
   });
 
   socket.on("message", (recievedData) => {
@@ -29,6 +61,22 @@ io.on("connection", (socket) => {
 
   socket.on("disconnect", () => {
     console.log("user disconnected");
+
+    const name = socket.name;
+    const room = socket.room;
+
+    if (room) {
+      io.to(room).emit("userStatus", {
+        message: "disconnected",
+        name,
+        room,
+      });
+
+      setTimeout(() => {
+        const usersInRoom = getUsersInRoom(room);
+        io.to(room).emit("updateUserList", usersInRoom);
+      }, 100);
+    }
   });
 });
 
