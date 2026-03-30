@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Socket } from "socket.io-client";
-import { MessageField } from "./MessageField";
+import { MessageBox } from "./MessageBox/MessageBox";
 
 interface Props {
   name: string;
@@ -28,30 +28,13 @@ interface MessageUser extends BaseMessageUser {
 
 type MessagesProps = MessageUser | MessageUserStatus;
 
-const TEXT_CONTENT = {
-  submit: "send",
-};
-
 export const ChatWidget = ({ socket, name, room }: Props) => {
-  const [newMessage, setNewMessage] = useState("");
   const [messsages, setMessages] = useState<MessagesProps[]>([]);
   const [users, setUsers] = useState<string[]>([]);
-  const [rows, setRows] = useState(1);
-
-  const handleSendMessage = () => {
-    const sendData = {
-      message: newMessage.trim(),
-      from: name,
-      room,
-    };
-
-    socket.emit("message", sendData);
-    setNewMessage("");
-    setRows(1);
-  };
 
   useEffect(() => {
     socket.on("message", (data: BaseMessageUser) => {
+      console.log(data.message);
       setMessages((prev) => [...prev, { ...data, type: "message" }]);
     });
 
@@ -108,9 +91,13 @@ export const ChatWidget = ({ socket, name, room }: Props) => {
                 >
                   {itm.from}
                 </span>
-                <p className="rounded px-2 py-1 whitespace-pre-wrap">
+                {/* <p className="rounded px-2 py-1 whitespace-pre-wrap">
                   {itm.message}
-                </p>
+                </p> */}
+                <p
+                  className="rounded px-2 py-1 whitespace-pre-wrap"
+                  dangerouslySetInnerHTML={{ __html: itm.message }}
+                />
               </div>
             );
           }
@@ -123,7 +110,7 @@ export const ChatWidget = ({ socket, name, room }: Props) => {
         })}
       </div>
       <div className="flex p-6 gap-6 border-t">
-        <textarea
+        {/* <textarea
           className="grow resize-none border rounded px-2 py-1 rounded"
           name="message"
           id="message"
@@ -142,18 +129,8 @@ export const ChatWidget = ({ socket, name, room }: Props) => {
           onChange={(e) => {
             setNewMessage(e.target.value);
           }}
-        />
-        <MessageField />
-        <button
-          className={`${
-            newMessage.trim() ? "pointer-events-auto" : "pointer-events-none"
-          } disabled:opacity-50 bg-blue-600 cursor-pointer text-white font-medium p-2 uppercase rounded hover:bg-blue-700 active:bg-blue-800 h-max`}
-          type="submit"
-          onClick={handleSendMessage}
-          disabled={!newMessage.trim()}
-        >
-          {TEXT_CONTENT.submit}
-        </button>
+        /> */}
+        <MessageBox name={name} room={room} socket={socket} />
       </div>
     </div>
   );

@@ -1,9 +1,14 @@
 import { useState, useRef, useEffect } from "react";
 
-export const MessageField = () => {
+interface Props {
+  setNewMessage: React.Dispatch<React.SetStateAction<string>>;
+}
+
+export const MessageField = ({ setNewMessage }: Props) => {
   const [selectionStart, setSelectionStart] = useState(false);
   const [popoverVisible, setPopoverVisible] = useState(false);
   const spanRef = useRef<HTMLSpanElement>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const span = spanRef.current;
@@ -12,6 +17,8 @@ export const MessageField = () => {
       console.log("start");
       setSelectionStart(true);
     };
+
+    spanRef.current?.focus();
 
     span?.addEventListener("selectstart", selectionStartCallback);
 
@@ -33,11 +40,22 @@ export const MessageField = () => {
       document.removeEventListener("selectionchange", onSelectionChange);
   }, [popoverVisible, selectionStart]);
 
-  const handleNewTags = (tag: "b" | "u" | "i") => {
-    console.log(tag);
+  const handleNewTags = (tag: "b" | "u" | "i" | "reset") => {
+    console.log("tag", tag);
+
     const selection = window.getSelection();
     if (selection?.isCollapsed) {
       alert("Please select some text first.");
+      return;
+    }
+
+    if (tag === "reset" && spanRef.current) {
+      selection?.removeAllRanges();
+      const reseteddText = spanRef.current.innerHTML.replace(/<[^>]+>/g, "");
+      setNewMessage(reseteddText || "");
+      spanRef.current.innerHTML = reseteddText || "";
+      setSelectionStart(false);
+      setPopoverVisible(false);
       return;
     }
 
@@ -46,19 +64,34 @@ export const MessageField = () => {
 
     try {
       range?.surroundContents(newTag);
-      selection?.removeAllRanges();
     } catch {
-      document.execCommand("bold", false, undefined);
+      selection?.removeAllRanges();
     } finally {
-      setSelectionStart(false);
-      setPopoverVisible(false);
+      setNewMessage(spanRef.current?.innerHTML || "");
     }
   };
 
+  const handleInput = (e: React.ChangeEvent<HTMLSpanElement>) => {
+    const innerHTML = e.target.innerHTML;
+    setNewMessage(innerHTML);
+  };
+
+  const handleBlur = (e: React.FocusEvent) => {
+    if (e.relatedTarget && popoverRef.current?.contains(e.relatedTarget)) {
+      return; // still inside popover, keep it open
+    }
+
+    setSelectionStart(false);
+    setPopoverVisible(false);
+  };
+
   return (
-    <div className="relative">
+    <div className="relative grow" onBlur={handleBlur}>
       {popoverVisible && (
-        <div className="absolute -top-7 flex gap-2 bg-zinc-400">
+        <div
+          className="absolute -top-7 flex gap-2 bg-zinc-400"
+          ref={popoverRef}
+        >
           <button
             className="bg-zinc-200 rounded px-2 hover:cursor-pointer"
             onClick={() => {
@@ -82,13 +115,21 @@ export const MessageField = () => {
           >
             <i>i</i>
           </button>
+          <button
+            className="bg-zinc-200 rounded px-2 hover:cursor-pointer"
+            onClick={() => handleNewTags("reset")}
+            title="clear styles"
+          >
+            clear
+          </button>
         </div>
       )}
       <span
         ref={spanRef}
         contentEditable
-        className="bg-teal-300 block w-[300px] h-[100px]"
+        className="bg-teal-300 block w-full h-[100px]"
         role="textbox"
+        onInput={handleInput}
       />
     </div>
   );
